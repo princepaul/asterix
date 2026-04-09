@@ -51,6 +51,8 @@ bool gSelectedCats[256] = {false};
 bool gAnyCatSelected = false;
 bool gSkipOtherCats = false;
 bool gDebug = false;
+unsigned int gPacketCount = 0;
+unsigned long gByteOffset = 0;
 
 static void DisplayCopyright() {
     std::cerr << "Asterix " _VERSION_STR " " __DATE__ " " __TIME__;

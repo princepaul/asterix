@@ -155,6 +155,8 @@ extern bool gSelectedCats[256]; // True if category is specifically requested
 extern bool gAnyCatSelected; // True if at least one --cat flag is used
 extern bool gSkipOtherCats;  // True if we should skip categories not specifically requested
 extern bool gDebug; // True if debug mode is enabled
+extern unsigned int gPacketCount; // Counter for packets read
+extern unsigned long gByteOffset; // Global byte offset in the input file
 
 /* Private ASSERT macro */
 #ifdef ASSERT

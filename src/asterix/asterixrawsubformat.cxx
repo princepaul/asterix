@@ -27,6 +27,9 @@
 
 #include "asterix.h"
 #include "asterixformat.hxx"
+
+extern unsigned long gByteOffset;
+extern unsigned int gPacketCount;
 #include "asterixformatdescriptor.hxx"
 #include "asterixrawsubformat.hxx"
 
@@ -109,13 +112,15 @@ bool CAsterixRawSubformat::ReadPacket(CBaseFormatDescriptor &formatDescriptor, C
             dataLen |= asterixHeader[2];
 
             if (dataLen <= 3) {
-                LOGERROR(1, "Wrong Asterix data length (%d)\n", dataLen);
+                LOGERROR(1, "Wrong Asterix data length (%d) at offset %lu\n", dataLen, gByteOffset);
+                gPacketCount++;
                 return false;
             }
             if (leftBytes != 0 && dataLen > leftBytes) {
-                LOGERROR(1, "Not enough data for packet! Size = %d, left = %d.\n", dataLen, leftBytes);
+                LOGERROR(1, "Not enough data! Byte offset %lu, packet #%u. Size = %d, left = %d.\n", gByteOffset, ++gPacketCount, dataLen, leftBytes);
                 return false;
             }
+            ++gPacketCount;
 
             readSize = dataLen - 3;
             const unsigned char *pBuffer = Descriptor.GetNewBuffer(dataLen);
@@ -128,6 +133,8 @@ bool CAsterixRawSubformat::ReadPacket(CBaseFormatDescriptor &formatDescriptor, C
                 LOGERROR(1, "Couldn't read packet.\n");
                 return false;
             }
+
+            gByteOffset += dataLen; // Update global byte offset
         }
     }
     return true;
