@@ -156,10 +156,13 @@ void CConverterEngine::Start() {
                 }
 
                 if (gDebug) {
-                    std::cout << "\n[DEBUG] Packet processed. Press 'Y' to proceed to next packet, 'N' to exit: " << std::flush;
+                    std::cout << "\n[DEBUG] Packet processed. Press 'Y' to continue, 'C' to continue till next error, 'N' to exit: " << std::flush;
                     std::string input;
                     std::getline(std::cin, input);
-                    if (input != "Y" && input != "y") {
+                    if (input == "C" || input == "c") {
+                        gDebug = false; // Disable debug mode to continue without prompting
+                        std::cout << "[DEBUG] Continuing without debug mode..." << std::endl;
+                    } else if (input != "Y" && input != "y") {
                         std::cout << "Exiting." << std::endl;
                         exit(0);
                     }
