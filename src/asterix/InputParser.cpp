@@ -97,7 +97,7 @@ InputParser::parsePacket(const unsigned char *m_pBuffer, unsigned int m_nBufferS
                 }
                 std::string hexString = buffer.str();
                 hexString.erase(hexString.size() - 1);
-                std::cout << "[DEBUG] Raw Packet: [" << hexString << "]" << std::endl;
+                std::cout << "\n[DEBUG] Raw Packet: [" << hexString << "]" << std::endl;
             }
 
             if (gSkipOtherCats && gAnyCatSelected && !gSelectedCats[nCategory]) {
