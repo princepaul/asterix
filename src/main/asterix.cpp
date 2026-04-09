@@ -50,6 +50,7 @@ int gSelectedCatVersions[256][2] = {0};
 bool gSelectedCats[256] = {false};
 bool gAnyCatSelected = false;
 bool gSkipOtherCats = false;
+bool gDebug = false;
 
 static void DisplayCopyright() {
     std::cerr << "Asterix " _VERSION_STR " " __DATE__ " " __TIME__;
@@ -76,6 +77,7 @@ static void show_usage(std::string name) {
             << "\n\t-c,--cat\tSpecific ASTERIX category to load (e.g. 48). Optionally specify version (e.g. --cat 48 1.21)."
             << "\n\t-sk,--skip\tSkip dissection of categories not explicitly requested with --cat."
             << "\n\t-vrm,--ast-version\tSpecific version of the last specified category to load (e.g. 1.21)."
+            << "\n\t-dbg,--debug\tEnable debug mode for step-by-step packet processing (requires confirmation for each packet)."
             << "\n\t-L,--list\tList all configured ASTERIX items. Mark which items are filtered."
             << "\n\t-LF,--filter\tPrintout only items listed in configured file."
             << "\n\t-o,--loop\tLoop the input file. Only relevant when file is data source."
@@ -285,6 +287,8 @@ int main(int argc, const char *argv[]) {
                 std::cerr << "Error: Version format shall be X.Y (e.g. 1.21)" << std::endl;
                 return 1;
             }
+        } else if ((arg == "-dbg") || (arg == "--debug")) {
+            gDebug = true;
         } else if ((arg == "-f")) {
             if (i >= argc - 1) {
                 std::cerr << "Error: " + arg + " option requires one argument." << std::endl;

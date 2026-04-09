@@ -22,9 +22,13 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
+#include <string>
 
 #include "asterix.h"
 #include "converterengine.hxx"
+
+extern bool gDebug;
 #include "channelfactory.hxx"
 #include "descriptor.hxx"
 
@@ -149,6 +153,16 @@ void CConverterEngine::Start() {
 
                     if (ProcessStatus() & (STS_FAIL_INPUT | STS_FAIL_DATA))
                         continue;
+                }
+
+                if (gDebug) {
+                    std::cout << "\n[DEBUG] Packet processed. Press 'Y' to proceed to next packet, 'N' to exit: " << std::flush;
+                    std::string input;
+                    std::getline(std::cin, input);
+                    if (input != "Y" && input != "y") {
+                        std::cout << "Exiting." << std::endl;
+                        exit(0);
+                    }
                 }
             }
 
