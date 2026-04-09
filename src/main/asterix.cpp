@@ -79,7 +79,7 @@ static void show_usage(std::string name) {
             << "\n\t-c,--cat\tSpecific ASTERIX category to load (e.g. 48). Optionally specify version (e.g. --cat 48 1.21)."
             << "\n\t-sk,--skip\tSkip dissection of categories not explicitly requested with --cat."
             << "\n\t-vrm,--ast-version\tSpecific version of the last specified category to load (e.g. 1.21)."
-            << "\n\t-dbg,--debug\tEnable debug mode for step-by-step packet processing (requires confirmation for each packet)."
+            << "\n\t-dbg,--debug [y|c]\tEnable debug mode for step-by-step processing. y=pause after each packet (default), c=continue till error."
             << "\n\t-L,--list\tList all configured ASTERIX items. Mark which items are filtered."
             << "\n\t-LF,--filter\tPrintout only items listed in configured file."
             << "\n\t-o,--loop\tLoop the input file. Only relevant when file is data source."
@@ -291,6 +291,17 @@ int main(int argc, const char *argv[]) {
             }
         } else if ((arg == "-dbg") || (arg == "--debug")) {
             gDebug = true;
+            // Check for optional mode: y or c
+            if (i < argc - 1) {
+                std::string nextArg = argv[i + 1];
+                // Only consume if it doesn't start with '-' (not another flag)
+                if (nextArg[0] != '-' && (nextArg == "y" || nextArg == "Y" || nextArg == "c" || nextArg == "C")) {
+                    // 'y' means pause after each packet (Y)
+                    // 'c' means continue without pausing (C)
+                    // If not specified, default is 'y' (pause)
+                    i++; // consume the mode argument
+                }
+            }
         } else if ((arg == "-f")) {
             if (i >= argc - 1) {
                 std::cerr << "Error: " + arg + " option requires one argument." << std::endl;
