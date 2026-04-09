@@ -21,9 +21,7 @@
  *
  */
 
-#ifdef _DEBUG
 #include "asterix.h"
-#endif
 
 #include "InputParser.h"
 
@@ -100,6 +98,13 @@ InputParser::parsePacket(const unsigned char *m_pBuffer, unsigned int m_nBufferS
             hexString.erase(hexString.size() - 1);
             LOGDEBUG(1, "[%s]\n", hexString.c_str());
 #endif
+            if (gSkipOtherCats && gAnyCatSelected && !gSelectedCats[nCategory]) {
+                m_pData += dataLen;
+                m_nPos += dataLen;
+                m_nDataLength -= dataLen;
+                continue;
+            }
+
             DataBlock *db = new DataBlock(m_pDefinition->getCategory(nCategory), dataLen, m_pData, nTimestamp);
             m_pData += dataLen;
             m_nPos += dataLen;
@@ -170,6 +175,13 @@ InputParser::parse_next_data_block(const unsigned char *m_pData, unsigned int &m
     hexString.erase(hexString.size() - 1);
     LOGDEBUG(1, "[%s]\n", hexString.c_str());
 #endif
+    if (gSkipOtherCats && gAnyCatSelected && !gSelectedCats[nCategory]) {
+        m_pData += dataLen;
+        m_nPos += dataLen;
+        m_nDataLength -= dataLen;
+        return NULL;
+    }
+
     DataBlock *db = new DataBlock(m_pDefinition->getCategory(nCategory), dataLen, m_pData, nTimestamp);
     m_pData += dataLen;
     m_nPos += dataLen;
