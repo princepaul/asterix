@@ -157,6 +157,7 @@ extern bool gSkipOtherCats;  // True if we should skip categories not specifical
 extern bool gDebug; // True if debug mode is enabled
 extern unsigned int gPacketCount; // Counter for packets read
 extern unsigned long gByteOffset; // Global byte offset in the input file
+extern bool gDebugContinue; // True if --debug c was used (continue without pause)
 
 /* Private ASSERT macro */
 #ifdef ASSERT

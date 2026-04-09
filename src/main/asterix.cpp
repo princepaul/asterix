@@ -53,6 +53,7 @@ bool gSkipOtherCats = false;
 bool gDebug = false;
 unsigned int gPacketCount = 0;
 unsigned long gByteOffset = 0;
+bool gDebugContinue = false;
 
 static void DisplayCopyright() {
     std::cerr << "Asterix " _VERSION_STR " " __DATE__ " " __TIME__;
@@ -298,7 +299,9 @@ int main(int argc, const char *argv[]) {
                 if (nextArg[0] != '-' && (nextArg == "y" || nextArg == "Y" || nextArg == "c" || nextArg == "C")) {
                     // 'y' means pause after each packet (Y)
                     // 'c' means continue without pausing (C)
-                    // If not specified, default is 'y' (pause)
+                    if (nextArg == "c" || nextArg == "C") {
+                        gDebugContinue = true;
+                    }
                     i++; // consume the mode argument
                 }
             }
