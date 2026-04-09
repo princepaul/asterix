@@ -43,8 +43,16 @@ int gHeartbeat = 0;
 const char *gAsterixDefinitionsFile = NULL;
 bool gFiltering = false;
 
+int gCategory = 0; // Deprecated
+int gVersionMajor = 0; // Deprecated
+int gVersionMinor = 0; // Deprecated
+int gSelectedCatVersions[256][2] = {0}; 
+bool gSelectedCats[256] = {false};
+bool gAnyCatSelected = false;
+bool gSkipOtherCats = false;
+
 static void DisplayCopyright() {
-    std::cerr << "Asterix " _VERSION_STR " " __DATE__;
+    std::cerr << "Asterix " _VERSION_STR " " __DATE__ " " __TIME__;
 #ifdef _DEBUG
     std::cerr << " DEBUG version";
 #endif
@@ -59,12 +67,15 @@ static void show_usage(std::string name) {
             << "\nReads and parses ASTERIX data from stdin, file or network multicast stream\nand prints it in textual presentation on standard output.\n\n"
             << "Usage:\n"
             << name
-            << " [-h] [-V] [-v] [-L] [-o] [-s] [-P|-O|-R|-F|-H] [-l|-x|-j|-jh|-je] [-d filename] [-LF filename] -f filename|-i (mcastaddress:ipaddress:port[:srcaddress]@)+"
+            << " [-h] [-V] [-v] [-L] [-o] [-s] [-P|-O|-R|-F|-H] [-l|-x|-j|-jh|-je] [-d filename] [-c cat] [-vrm version] [-LF filename] -f filename|-i (mcastaddress:ipaddress:port[:srcaddress]@)+"
             << "\n\nOptions:"
             << "\n\t-h,--help\tShow this help message and exit."
             << "\n\t-V,--version\tShow version information and exit."
             << "\n\t-v,--verbose\tShow more information during program execution."
             << "\n\t-d,--def\tXML protocol definitions filenames are listed in specified filename. By default are listed in config/asterix.ini"
+            << "\n\t-c,--cat\tSpecific ASTERIX category to load (e.g. 48). Optionally specify version (e.g. --cat 48 1.21)."
+            << "\n\t-sk,--skip\tSkip dissection of categories not explicitly requested with --cat."
+            << "\n\t-vrm,--ast-version\tSpecific version of the last specified category to load (e.g. 1.21)."
             << "\n\t-L,--list\tList all configured ASTERIX items. Mark which items are filtered."
             << "\n\t-LF,--filter\tPrintout only items listed in configured file."
             << "\n\t-o,--loop\tLoop the input file. Only relevant when file is data source."
@@ -224,6 +235,56 @@ int main(int argc, const char *argv[]) {
             }
 
             strDefinitions = argv[++i];
+        } else if ((arg == "-c") || (arg == "--cat")) {
+            if (i >= argc - 1) {
+                std::cerr << "Error: " + arg + " option requires at least one argument." << std::endl;
+                return 1;
+            }
+            int cat = atoi(argv[++i]);
+            if (cat < 0 || cat > 255) {
+                std::cerr << "Error: Category must be between 0 and 255." << std::endl;
+                return 1;
+            }
+            gCategory = cat; // for backward compatibility
+            gSelectedCats[cat] = true;
+            gAnyCatSelected = true;
+
+            // Check if next argument is a version string (X.Y)
+            if (i < argc - 1) {
+                std::string ver = argv[i + 1];
+                if (ver[0] != '-') { // If it doesn't look like a flag
+                    size_t dotPos = ver.find('.');
+                    if (dotPos != std::string::npos) {
+                        gSelectedCatVersions[cat][0] = atoi(ver.substr(0, dotPos).c_str());
+                        gSelectedCatVersions[cat][1] = atoi(ver.substr(dotPos + 1).c_str());
+                        gVersionMajor = gSelectedCatVersions[cat][0]; // for compat
+                        gVersionMinor = gSelectedCatVersions[cat][1]; // for compat
+                        i++; // consume the version argument
+                    }
+                }
+            }
+        } else if ((arg == "-sk") || (arg == "--skip")) {
+            gSkipOtherCats = true;
+        } else if ((arg == "-vrm") || (arg == "--ast-version")) {
+            if (i >= argc - 1) {
+                std::cerr << "Error: " + arg + " option requires one argument." << std::endl;
+                return 1;
+            }
+            if (gCategory < 0 || gCategory > 255 || !gSelectedCats[gCategory]) {
+                std::cerr << "Error: --ast-version must follow a --cat flag." << std::endl;
+                return 1;
+            }
+            std::string ver = argv[++i];
+            size_t dotPos = ver.find('.');
+            if (dotPos != std::string::npos) {
+                gSelectedCatVersions[gCategory][0] = atoi(ver.substr(0, dotPos).c_str());
+                gSelectedCatVersions[gCategory][1] = atoi(ver.substr(dotPos + 1).c_str());
+                gVersionMajor = gSelectedCatVersions[gCategory][0]; // for compat
+                gVersionMinor = gSelectedCatVersions[gCategory][1]; // for compat
+            } else {
+                std::cerr << "Error: Version format shall be X.Y (e.g. 1.21)" << std::endl;
+                return 1;
+            }
         } else if ((arg == "-f")) {
             if (i >= argc - 1) {
                 std::cerr << "Error: " + arg + " option requires one argument." << std::endl;

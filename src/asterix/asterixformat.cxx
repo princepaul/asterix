@@ -25,6 +25,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <set>
+#include <string>
 
 #include "asterix.h"
 #include "asterixformat.hxx"
@@ -37,6 +39,13 @@
 
 #include "Tracer.h"
 #include "XMLParser.h"
+
+extern int gCategory;
+extern int gVersionMajor;
+extern int gVersionMinor;
+extern int gSelectedCatVersions[256][2];
+extern bool gSelectedCats[256];
+extern bool gAnyCatSelected;
 
 // Supported Asterix format names
 const char *CAsterixFormat::_FormatName[CAsterixFormat::ETotalFormats] =
@@ -248,6 +257,9 @@ CBaseFormatDescriptor *CAsterixFormat::CreateFormatDescriptor
             strInifilePath = strInifile.substr(0, index + 1);
         }
 
+        bool targetFound = false;
+        std::set<std::string> loadedFiles;
+
         while (fgets(inputFile, sizeof(inputFile), fpini)) {
             std::string strInputFile;
 
@@ -261,6 +273,50 @@ CBaseFormatDescriptor *CAsterixFormat::CreateFormatDescriptor
                 continue;
 
             strInputFile = inputFile;
+
+            // Filter by category and version if specified
+            bool skip = false;
+
+            // Only apply filters to category files (asterix_cat...)
+            if (strncmp(inputFile, "asterix_cat", 11) == 0) {
+                int fileCat = 0, fileMajor = 0, fileMinor = 0;
+                if (sscanf(inputFile, "asterix_cat%03d_%d_%d.xml", &fileCat, &fileMajor, &fileMinor) == 3) {
+                    if (fileCat >= 0 && fileCat <= 255 && gSelectedCats[fileCat]) {
+                        // Category matches one requested on CLI, apply version filter
+                        int reqMajor = gSelectedCatVersions[fileCat][0];
+                        int reqMinor = gSelectedCatVersions[fileCat][1];
+
+                        if (reqMajor > 0) {
+                            if (fileMajor != reqMajor || (reqMinor > 0 && fileMinor != reqMinor)) {
+                                skip = true; // Skip wrong versions of overridden categories
+                            } else {
+                                targetFound = true;
+                            }
+                        } else {
+                            // Category matches and no specific version requested, accept it
+                            targetFound = true;
+                        }
+                    } else {
+                        // Not an overridden category, load normally from .ini
+                        skip = false;
+                    }
+                } else {
+                    // Filename doesn't match pattern, skip it
+                    skip = true;
+                }
+            } else {
+                // Non-category files (like asterix_bds.xml) are always loaded
+                skip = false;
+            }
+
+            if (skip) {
+                continue;
+            }
+
+            // Deduplicate: don't load the same file twice
+            if (loadedFiles.find(strInputFile) != loadedFiles.end()) {
+                continue;
+            }
 
             FILE *fp = fopen(strInputFile.c_str(), "rt");
             if (!fp) {
@@ -280,10 +336,54 @@ CBaseFormatDescriptor *CAsterixFormat::CreateFormatDescriptor
             XMLParser Parser;
             if (!Parser.Parse(fp, pDefinition, inputFile)) {
                 LOGERROR(1, "Failed to parse definitions file: %s\n", strInputFile.c_str());
+            } else {
+                loadedFiles.insert(strInputFile);
             }
 
             fclose(fp);
-        };
+        }
+
+        // Dynamic Loading Fallback: For each requested cat/version, if NOT found in .ini, try to load it directly
+        if (gAnyCatSelected) {
+            for (int cat = 0; cat < 256; cat++) {
+                if (gSelectedCats[cat]) {
+                    int reqMajor = gSelectedCatVersions[cat][0];
+                    int reqMinor = gSelectedCatVersions[cat][1];
+
+                    // We only dynamically load if a specific version was requested for this category
+                    // and it wasn't already loaded (either from .ini or previous cat loop)
+                    if (reqMajor > 0) {
+                        char dynamicFile[256];
+                        snprintf(dynamicFile, sizeof(dynamicFile), "asterix_cat%03d_%d_%d.xml", cat, reqMajor,
+                                 reqMinor);
+                        std::string strDynamicFile = dynamicFile;
+
+                        if (loadedFiles.find(strDynamicFile) == loadedFiles.end()) {
+                            FILE *fp = fopen(strDynamicFile.c_str(), "rt");
+                            if (!fp && !strInifilePath.empty()) {
+                                std::string strfilepath = strInifilePath + strDynamicFile;
+                                fp = fopen(strfilepath.c_str(), "rt");
+                            }
+
+                            if (fp) {
+                                XMLParser Parser;
+                                if (!Parser.Parse(fp, pDefinition, dynamicFile)) {
+                                    LOGERROR(1, "Failed to parse dynamic definitions file: %s\n", dynamicFile);
+                                } else {
+                                    loadedFiles.insert(strDynamicFile);
+                                    LOGINFO(1, "Dynamically loaded requested ASTERIX version: %s\n", dynamicFile);
+                                }
+                                fclose(fp);
+                            } else {
+                                // Only warn if it's a specific version we expected to find
+                                LOGWARNING(1, "Requested ASTERIX category %d version %d.%d file not found: %s\n", cat,
+                                           reqMajor, reqMinor, dynamicFile);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         fclose(fpini);
 

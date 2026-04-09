@@ -147,6 +147,13 @@ extern bool gVerbose;
 extern bool gTrace;
 extern bool gForceRouting;
 extern int gHeartbeat;
+extern int gCategory; // Deprecated: Use gSelectedCats instead
+extern int gVersionMajor; // Deprecated
+extern int gVersionMinor; // Deprecated
+extern int gSelectedCatVersions[256][2]; // [0] for major, [1] for minor
+extern bool gSelectedCats[256]; // True if category is specifically requested
+extern bool gAnyCatSelected; // True if at least one --cat flag is used
+extern bool gSkipOtherCats;  // True if we should skip categories not specifically requested
 
 /* Private ASSERT macro */
 #ifdef ASSERT
