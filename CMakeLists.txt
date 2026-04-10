@@ -23,7 +23,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(asterix)
 
-set(EXECUTABLE_OUTPUT_PATH install)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/install)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -125,3 +125,10 @@ add_executable(${PROJECT_NAME}
         src/main/version.h)
 
 target_link_libraries(${PROJECT_NAME} ${EXPAT_LIBRARIES})
+
+# Ensure the binary is copied to the install folder whenever it is built
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_SOURCE_DIR}/install/
+    COMMENT "Copying binary to install directory"
+)
+
