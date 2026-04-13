@@ -220,26 +220,28 @@ public class DataItemBits extends DataItemFormat {
 
     @Override
     public String getText(int formatType, ByteBuffer data, long length) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(shortName).append(": ");
-        sb.append(" [").append(from).append("-").append(to).append("] ");
-        
-        // Basic extraction logic - simplified
-        long rawValue = extractBits(data, from, to);
-        
-        if (isConst) {
-            sb.append("Const: ").append(constValue);
-        } else {
-            sb.append(rawValue);
-            if (scale != 0) {
-                sb.append(" (").append(rawValue * scale).append(")");
-            }
+        if (data == null || data.remaining() == 0) {
+            return "";
         }
         
-        // Check for descriptions
-        for (BitsValue v : values) {
-            if (v.getValue() == rawValue) {
-                sb.append(" - ").append(v.getDescription());
+        long rawValue = extractBits(data, from, to);
+        double value = rawValue;
+        
+        if (scale != 0) {
+            value = rawValue * scale;
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        
+        if (formatType == 1) { // JSON
+            sb.append("\"").append(shortName).append("\":");
+            sb.append("\"").append((long)value).append("\"");
+        } else if (formatType == 2) { // Line
+            sb.append("\"").append(shortName).append("\":").append((long)value);
+        } else { // TXT
+            sb.append(shortName).append(": ").append((long)value);
+            if (scale != 0) {
+                sb.append(" (").append(value).append(")");
             }
         }
         
@@ -252,15 +254,26 @@ public class DataItemBits extends DataItemFormat {
         int startByte = fromBit / 8;
         int endByte = toBit / 8;
         
-        if (startByte >= data.capacity() || endByte >= data.capacity()) {
+        if (startByte >= data.capacity()) {
             return 0;
         }
         
-        int bits = toBit - fromBit + 1;
-        long mask = (1L << bits) - 1;
+        long value = 0;
         
-        // Simple extraction for now
-        return (data.get(startByte) & (0xFF >> (8 - (toBit % 8) - 1)));
+        if (startByte == endByte) {
+             int shift = 7 - (toBit % 8);
+             int bits = toBit - fromBit + 1;
+             value = (data.get(startByte) >> shift);
+             value = value & ((1 << bits) - 1);
+} else {
+             for (int b = startByte; b <= endByte && b < data.capacity(); b++) {
+                 value = (value << 8) | (data.get(b) & 0xFF);
+             }
+             int bits = toBit - fromBit + 1;
+             value = value & ((1 << bits) - 1);
+         }
+        
+        return value;
     }
 
     @Override

@@ -59,10 +59,23 @@ public class DataItemFormatFixed extends DataItemFormat {
 
     @Override
     public String getText(int formatType, ByteBuffer data, long length) {
+        if (data == null || data.remaining() == 0) {
+            return "";
+        }
+        
         StringBuilder sb = new StringBuilder();
+        
+        if (bits.isEmpty()) {
+            // No detailed bits, just show raw length
+            if (formatType == 2) { // Line
+                 return "Len:" + length;
+            }
+            return "Fixed length: " + length;
+        }
+        
         for (DataItemBits bit : bits) {
             sb.append(bit.getText(formatType, data, length));
-            sb.append("\n");
+            if (formatType != 2) sb.append("\n");
         }
         return sb.toString();
     }

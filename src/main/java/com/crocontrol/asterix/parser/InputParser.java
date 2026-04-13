@@ -5,6 +5,7 @@ import com.crocontrol.asterix.model.Category;
 import com.crocontrol.asterix.model.DataBlock;
 import com.crocontrol.asterix.model.DataItem;
 import com.crocontrol.asterix.model.DataItemDescription;
+import com.crocontrol.asterix.model.DataItemFormat;
 import com.crocontrol.asterix.model.DataRecord;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,14 +28,19 @@ public class InputParser {
         ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
         
         int category = byteBuffer.get(0) & 0xFF;
-        System.out.println("Looking for category: " + category);
+        int length = (byteBuffer.get(1) & 0xFF);
+        
+        // Check if length > 127, need to read second length byte
+        if (length > 127) {
+            length = ((length & 0x7F) << 8) | (byteBuffer.get(2) & 0xFF);
+            byteBuffer.position(3); // Skip CAT + 2 LEN bytes
+        } else {
+            byteBuffer.position(2); // Skip CAT + 1 LEN byte
+        }
         
         Category cat = definitions.getCategory(category);
-        System.out.println("Found category: " + (cat != null ? cat.getId() : "null"));
         
         if (cat == null) {
-            // Try to find definition manually if not in map (debug)
-            System.out.println("Definitions map: " + definitions);
             return dataBlocks;
         }
         
@@ -44,8 +50,6 @@ public class InputParser {
     }
 
     private void parseCategoryData(ByteBuffer buffer, Category cat, double timestamp, List<DataBlock> blocks) {
-        System.out.println("Parsing category " + cat.getId() + " with " + cat.getDataItems().size() + " items defined.");
-        
         DataBlock block = new DataBlock();
         block.setTimestamp(timestamp);
         
@@ -54,45 +58,73 @@ public class InputParser {
         
         int fspecLength = parseFSPEC(buffer);
         
-        // Parse items defined in the category
-        List<DataItemDescription> items = cat.getDataItems();
+        // Parse FSPEC bits to determine which items are present
+        int[] fspecIndices = parseFSPECBits(buffer, fspecLength);
         
-        if (items.isEmpty()) {
-            System.out.println("No items defined for this category.");
-            // Return empty block or add dummy
-            blocks.add(block);
-            return;
-        }
+        List<DataItemDescription> items = cat.getDataItems();
         
         int dataOffset = 1 + fspecLength; // Start after cat byte and FSPEC
         
-        // Simple loop - should check FSPEC bits to know what is present
-        for (DataItemDescription itemDesc : items) {
-            if (itemDesc.getRule() == DataItemDescription.Rule.DATAITEM_MANDATORY || 
-                (dataOffset < buffer.capacity())) {
-                
+        int itemIndex = 0;
+        // Map items to handle index gaps if needed, but assume sequential for now
+        for (int i = 0; i < items.size(); i++) {
+            DataItemDescription itemDesc = items.get(i);
+            
+            // Check if this item index is in the present list
+            boolean present = false;
+            if (fspecIndices != null) {
+                for (int idx : fspecIndices) {
+                    if (idx == i) {
+                        present = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Mandatory items are always present?
+            if (!present && itemDesc.getRule() == DataItemDescription.Rule.DATAITEM_MANDATORY) {
+                present = true;
+            }
+            
+            if (present) {
                 DataItem item = new DataItem(itemDesc);
                 
-                // Set raw data for this item
+// Calculate length based on format type
+                DataItemFormat format = itemDesc.getFormatObj();
+                long itemLen = 0;
+                if (format != null) {
+                    if (format.isFixed()) {
+                        itemLen = format.getLength(buffer);
+                    } else if (format.isVariable()) {
+                        itemLen = buffer.capacity() - dataOffset;
+                    }
+                }
+                
+                if (itemLen < 0) itemLen = 0;
+                
                 ByteBuffer itemData = buffer.duplicate();
                 itemData.position(dataOffset);
-                // Limit data length (simplified)
+                
+                // Limit to item length or remaining
+                int limit = (int)(dataOffset + itemLen);
+                if (limit > buffer.capacity()) limit = buffer.capacity();
+                itemData.limit(limit);
+                
                 item.setData(itemData);
-                item.setLength(0); // unknown length for now
+                item.setLength(itemLen);
                 
                 record.addDataItem(item);
                 
-                // Advance offset (placeholder)
-                dataOffset += 2; 
+                dataOffset += itemLen;
             }
         }
         
         block.addRecord(record);
         blocks.add(block);
     }
-
+    
     private int parseFSPEC(ByteBuffer buffer) {
-        int pos = 1; // Start after category byte
+        int pos = 1;
         int length = 0;
         
         while (pos < buffer.capacity()) {
@@ -105,6 +137,28 @@ public class InputParser {
         }
         
         return length;
+    }
+    
+    private int[] parseFSPECBits(ByteBuffer buffer, int fspecLength) {
+        List<Integer> itemIndexes = new ArrayList<>();
+        
+        // Start from byte 1 (after category)
+        for (int i = 1; i < 1 + fspecLength; i++) {
+            byte b = buffer.get(i);
+            // Read bits 7 to 1
+            for (int bit = 7; bit >= 1; bit--) {
+                int itemIdx = (7 - bit) + ((i-1)*7);
+                if ((b & (1 << bit)) != 0) {
+                    itemIndexes.add(itemIdx);
+                }
+            }
+        }
+        
+        int[] result = new int[itemIndexes.size()];
+        for (int i = 0; i < itemIndexes.size(); i++) {
+            result[i] = itemIndexes.get(i);
+        }
+        return result;
     }
 
     public AsterixDefinition getDefinitions() {

@@ -162,9 +162,7 @@ public class ConverterEngine {
             for (DataBlock block : blocks) {
                 for (DataRecord record : block.getRecords()) {
                     String output = formatter.format(record);
-                    if (!output.isEmpty()) {
-                        System.out.print(output);
-                    }
+                    System.out.print(output);
                 }
             }
         }
