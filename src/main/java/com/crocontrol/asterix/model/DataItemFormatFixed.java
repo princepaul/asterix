@@ -38,7 +38,11 @@ public class DataItemFormatFixed extends DataItemFormat {
     public void addBit(DataItemBits bit) {
         this.bits.add(bit);
     }
-
+    
+    public int getBitCount() {
+        return bits.size();
+    }
+    
     @Override
     public DataItemFormatFixed clone() {
         DataItemFormatFixed clone = new DataItemFormatFixed(this.id, this.length);
