@@ -98,8 +98,6 @@ public class InputParser {
                     } else if (format.isVariable()) {
                         itemLen = buffer.capacity() - dataOffset;
                     }
-                    
-                    System.out.println("DEBUG Parsing " + itemDesc.getName() + " offset:" + dataOffset + " len:" + itemLen + " cap:" + buffer.capacity());
                 }
                 
                 if (itemLen < 0) itemLen = 0;
