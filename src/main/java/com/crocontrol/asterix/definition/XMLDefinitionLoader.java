@@ -4,6 +4,8 @@ import com.crocontrol.asterix.model.Category;
 import com.crocontrol.asterix.model.DataItemDescription;
 import com.crocontrol.asterix.model.DataItemBits;
 import com.crocontrol.asterix.model.DataItemFormatFixed;
+import com.crocontrol.asterix.model.DataItemFormatVariable;
+import com.crocontrol.asterix.model.DataItemFormatRepetitive;
 import com.crocontrol.asterix.model.AsterixDefinition;
 import java.io.File;
 import javax.xml.parsers.DocumentBuilder;
@@ -155,6 +157,21 @@ public class XMLDefinitionLoader {
                                         }
                                     }
                                 }
+                                return;
+                            } else if ("Variable".equals(tagName)) {
+                                // Placeholder for Variable
+                                DataItemFormatVariable format = new DataItemFormatVariable(0);
+                                desc.setFormatObj(format);
+                                return;
+                            } else if ("Explicit".equals(tagName)) {
+                                // TODO: Explicit format not implemented in this version
+                                // DataItemFormatExplicit format = new DataItemFormatExplicit(0);
+                                // desc.setFormatObj(format);
+                                return;
+                            } else if ("Repetitive".equals(tagName)) {
+                                // Placeholder for Repetitive
+                                DataItemFormatRepetitive format = new DataItemFormatRepetitive(0);
+                                desc.setFormatObj(format);
                                 return;
                             }
                         }

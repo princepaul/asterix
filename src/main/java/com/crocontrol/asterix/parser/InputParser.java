@@ -69,7 +69,7 @@ public class InputParser {
         // Map items to handle index gaps if needed, but assume sequential for now
         for (int i = 0; i < items.size(); i++) {
             DataItemDescription itemDesc = items.get(i);
-            
+
             // Check if this item index is in the present list
             boolean present = false;
             if (fspecIndices != null) {
@@ -80,12 +80,12 @@ public class InputParser {
                     }
                 }
             }
-            
+
             // Mandatory items are always present?
             if (!present && itemDesc.getRule() == DataItemDescription.Rule.DATAITEM_MANDATORY) {
                 present = true;
             }
-            
+
             if (present) {
                 DataItem item = new DataItem(itemDesc);
                 
@@ -98,6 +98,8 @@ public class InputParser {
                     } else if (format.isVariable()) {
                         itemLen = buffer.capacity() - dataOffset;
                     }
+                    
+                    System.out.println("DEBUG Parsing " + itemDesc.getName() + " offset:" + dataOffset + " len:" + itemLen + " cap:" + buffer.capacity());
                 }
                 
                 if (itemLen < 0) itemLen = 0;
@@ -124,7 +126,8 @@ public class InputParser {
     }
     
     private int parseFSPEC(ByteBuffer buffer) {
-        int pos = 1;
+        int start = buffer.position();
+        int pos = start;
         int length = 0;
         
         while (pos < buffer.capacity()) {
