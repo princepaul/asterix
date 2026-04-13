@@ -102,6 +102,16 @@ public class InputParser {
                 
                 if (itemLen < 0) itemLen = 0;
                 
+                // Limit length to remaining buffer space
+                long remaining = buffer.capacity() - dataOffset;
+                if (itemLen > remaining || itemLen < 0) {
+                    itemLen = remaining;
+                }
+                
+                if (itemLen <= 0) {
+                    continue;
+                }
+
                 ByteBuffer itemData = buffer.duplicate();
                 itemData.position(dataOffset);
                 
