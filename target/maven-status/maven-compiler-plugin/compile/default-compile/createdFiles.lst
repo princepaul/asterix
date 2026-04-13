@@ -4,6 +4,7 @@ com/crocontrol/asterix/definition/INIFileLoader.class
 com/crocontrol/asterix/parser/InputParser.class
 com/crocontrol/asterix/engine/ConverterEngine.class
 com/crocontrol/asterix/model/DataItemDescription.class
+com/crocontrol/asterix/formatter/JsonFormatter.class
 com/crocontrol/asterix/model/DataItem.class
 com/crocontrol/asterix/model/DataItemDescription$Rule.class
 com/crocontrol/asterix/formatter/TextFormatter.class

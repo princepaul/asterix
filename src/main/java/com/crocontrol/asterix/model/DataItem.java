@@ -32,7 +32,14 @@ public class DataItem {
     }
 
     public String getText(int formatType) {
-        if (description == null || data == null) {
+        if (description == null) {
+            return "";
+        }
+        if (data == null) {
+            // Return item name for line format
+            if (formatType == 2) { // Line
+                return description.getId() + ":" + (description.getName() != null ? description.getName() : "");
+            }
             return "";
         }
         return description.getText(formatType, data, length);

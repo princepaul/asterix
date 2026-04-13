@@ -4,6 +4,7 @@ import com.crocontrol.asterix.definition.INIFileLoader;
 import com.crocontrol.asterix.definition.XMLDefinitionLoader;
 import com.crocontrol.asterix.formatter.OutputFormatter;
 import com.crocontrol.asterix.formatter.TextFormatter;
+import com.crocontrol.asterix.formatter.JsonFormatter;
 import com.crocontrol.asterix.io.Channel;
 import com.crocontrol.asterix.io.ChannelFactory;
 import com.crocontrol.asterix.model.AsterixDefinition;
@@ -73,11 +74,29 @@ public class ConverterEngine {
             }
         }
 
+        // Determine format from first output channel
+        if (nOutput > 0 && outputChannels[0] != null) {
+            String outDesc = outputChannels[0];
+            if (outDesc.contains("ASTERIX_JSON")) {
+                this.outputFormat = "ASTERIX_JSON";
+            } else if (outDesc.contains("ASTERIX_XML")) {
+                this.outputFormat = "ASTERIX_XML";
+            } else if (outDesc.contains("ASTERIX_OUT")) {
+                this.outputFormat = "ASTERIX_OUT";
+            }
+        }
+
         // Load definitions
         loadDefinitions("install/config/asterix.ini");
 
-        // Setup formatter
-        this.formatter = new TextFormatter(false);
+        // Setup formatter based on format
+        if ("ASTERIX_JSON".equals(this.outputFormat)) {
+            this.formatter = new JsonFormatter();
+        } else if ("ASTERIX_OUT".equals(this.outputFormat)) {
+            this.formatter = new TextFormatter(true); // Compact
+        } else {
+            this.formatter = new TextFormatter(false);
+        }
 
         return true;
     }

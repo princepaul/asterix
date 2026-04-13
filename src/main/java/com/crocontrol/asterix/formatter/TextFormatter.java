@@ -24,10 +24,15 @@ public class TextFormatter extends OutputFormatter {
             sb.append("Time: ").append(record.getTimestamp()).append("\n");
         }
 
+        int format = compact ? 2 : 0;
+        
         for (DataItem item : record.getDataItems()) {
-            sb.append(item.getText(0)); // 0 for TXT
-            if (!compact) {
-                sb.append("\n");
+            String txt = item.getText(format);
+            if (txt != null && !txt.isEmpty()) {
+                sb.append(txt);
+                if (!compact) {
+                    sb.append("\n");
+                }
             }
         }
 
