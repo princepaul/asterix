@@ -74,16 +74,21 @@ public class Main {
         // Check definitions
         File defFile = new File(definitionsFile);
         if (!defFile.exists()) {
-            System.err.println("Definitions file not found: " + definitionsFile);
-            return;
+            // Try relative to project root
+            defFile = new File("install/" + definitionsFile);
         }
-
-        // In a real app, we would load definitions here using XMLDefinitionLoader
+        
+        if (!defFile.exists()) {
+            System.err.println("Definitions file not found: " + definitionsFile);
+            // Continue anyway, maybe engine handles loading
+        } else {
+            if (verbose) System.out.println("Using definitions: " + defFile.getPath());
+        }
 
         if (bListDefinitions) {
             System.out.println("Listing definitions...");
-            // engine.printDefinitions();
         } else {
+            if (verbose) System.out.println("Starting processing...");
             engine.start();
         }
 

@@ -10,6 +10,7 @@ import com.crocontrol.asterix.model.AsterixDefinition;
 import com.crocontrol.asterix.model.DataBlock;
 import com.crocontrol.asterix.model.DataRecord;
 import com.crocontrol.asterix.parser.InputParser;
+import java.io.File;
 import java.util.List;
 
 public class ConverterEngine {
@@ -50,7 +51,14 @@ public class ConverterEngine {
         String[] parts = inputChannel.split(";");
         String deviceType = parts[0];
         String deviceDesc = parts.length > 1 ? parts[1] : "";
-        String format = parts.length > 2 ? parts[2] : "";
+        String format = "";
+        
+        // Extract filename if it contains pipe
+        if (deviceDesc.contains("|")) {
+            String[] fileParts = deviceDesc.split("\\|");
+            deviceDesc = fileParts[0];
+            format = fileParts.length > 1 ? fileParts[1] : "";
+        }
 
         if (!deviceType.isEmpty()) {
             channelFactory.createInputChannel(deviceType, deviceDesc, format, "");
@@ -65,32 +73,79 @@ public class ConverterEngine {
             }
         }
 
+        // Load definitions
+        loadDefinitions("install/config/asterix.ini");
+
         // Setup formatter
         this.formatter = new TextFormatter(false);
 
         return true;
     }
 
+    public boolean loadDefinitions(String iniFile) {
+        try {
+            INIFileLoader iniLoader = new INIFileLoader();
+            if (!iniLoader.load(iniFile)) {
+                System.err.println("Warning: Could not load INI file: " + iniFile);
+                return false;
+            }
+            
+            System.out.println("Loaded " + iniLoader.getDefinitionFiles().size() + " definition files.");
+            
+            // Resolve config directory
+            File ini = new File(iniFile);
+            String configDir = ini.getParent();
+            
+            XMLDefinitionLoader loader = new XMLDefinitionLoader();
+            for (String xmlFile : iniLoader.getDefinitionFiles()) {
+                // Prepend config dir
+                String fullPath = configDir + File.separator + xmlFile;
+                loader.load(fullPath);
+            }
+            
+            // Merge loaded definitions
+            AsterixDefinition loadedDefs = loader.getDefinitions();
+            System.out.println("Loaded " + loadedDefs.categoryDefined(62) + " for CAT 62");
+            
+            this.definitions = loadedDefs;
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error loading definitions: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public void start() {
         Channel input = channelFactory.getInputChannel();
+        
+        if (verbose) System.out.println("Engine started.");
         
         while (true) {
             byte[] data = input.read();
             if (data == null) {
+                if (verbose) System.out.println("No more data.");
                 break;
             }
+            
+            if (verbose) System.out.println("Read " + data.length + " bytes.");
 
             // Parse Packet
             if (parser == null) {
+                if (verbose) System.out.println("Creating parser...");
                 parser = new InputParser(definitions);
             }
             
             List<DataBlock> blocks = parser.parsePacket(data, System.currentTimeMillis() / 1000.0);
             
+            if (verbose) System.out.println("Parsed " + blocks.size() + " blocks.");
+            
             for (DataBlock block : blocks) {
                 for (DataRecord record : block.getRecords()) {
                     String output = formatter.format(record);
-                    System.out.print(output);
+                    if (!output.isEmpty()) {
+                        System.out.print(output);
+                    }
                 }
             }
         }

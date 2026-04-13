@@ -14,6 +14,7 @@ public class ChannelFactory {
     }
 
     public boolean createInputChannel(String type, String descriptor, String format, String formatDescriptor) {
+        System.out.println("ChannelFactory: type=" + type + ", desc=" + descriptor + ", fmt=" + format);
         if ("disk".equals(type)) {
             // Simple file input, loop not implemented yet
             this.inputChannel = new FileChannel(descriptor);
@@ -25,9 +26,12 @@ public class ChannelFactory {
             this.inputChannel = new UdpMulticastChannel(mcast, iface, port);
         } else {
             // std input (not implemented)
+            System.err.println("Unknown input type: " + type);
             return false;
         }
-        return inputChannel.open();
+        boolean opened = inputChannel.open();
+        System.out.println("ChannelFactory: opened=" + opened);
+        return opened;
     }
 
     public boolean createOutputChannel(String type, String descriptor, String format, String formatDescriptor) {

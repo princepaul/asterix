@@ -43,12 +43,12 @@ public class FileChannel implements Channel {
     @Override
     public byte[] read() {
         if (!isOpen()) {
+            System.err.println("FileChannel: Not open");
             return null;
         }
         
         try {
             // Read chunks of data - simple implementation
-            // In real implementation would handle framing (HDLC, PCAP, etc)
             byte[] buffer = new byte[2048];
             int bytesRead = inputStream.read(buffer);
             
@@ -57,14 +57,17 @@ public class FileChannel implements Channel {
                     // Reopen and retry (placeholder)
                     return null;
                 }
+                System.out.println("FileChannel: End of file");
                 return null;
             }
             
+            System.out.println("FileChannel: Read " + bytesRead + " bytes");
             byte[] result = new byte[bytesRead];
             System.arraycopy(buffer, 0, result, 0, bytesRead);
             return result;
             
         } catch (IOException e) {
+            System.err.println("FileChannel Error: " + e.getMessage());
             return null;
         }
     }

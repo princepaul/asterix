@@ -3,6 +3,7 @@ package com.crocontrol.asterix.parser;
 import com.crocontrol.asterix.model.AsterixDefinition;
 import com.crocontrol.asterix.model.Category;
 import com.crocontrol.asterix.model.DataBlock;
+import com.crocontrol.asterix.model.DataItem;
 import com.crocontrol.asterix.model.DataItemDescription;
 import com.crocontrol.asterix.model.DataRecord;
 import java.nio.ByteBuffer;
@@ -25,32 +26,68 @@ public class InputParser {
 
         ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
         
-        int category = byteBuffer.get(0);
+        int category = byteBuffer.get(0) & 0xFF;
+        System.out.println("Looking for category: " + category);
         
         Category cat = definitions.getCategory(category);
+        System.out.println("Found category: " + (cat != null ? cat.getId() : "null"));
         
         if (cat == null) {
+            // Try to find definition manually if not in map (debug)
+            System.out.println("Definitions map: " + definitions);
             return dataBlocks;
         }
         
-        // Basic parsing - needs implementation of FSPEC logic
         parseCategoryData(byteBuffer, cat, timestamp, dataBlocks);
         
         return dataBlocks;
     }
 
     private void parseCategoryData(ByteBuffer buffer, Category cat, double timestamp, List<DataBlock> blocks) {
+        System.out.println("Parsing category " + cat.getId() + " with " + cat.getDataItems().size() + " items defined.");
+        
         DataBlock block = new DataBlock();
         block.setTimestamp(timestamp);
         
-        DataRecord record = new DataRecord(cat, 0, buffer.remaining(), null, timestamp);
+        int length = buffer.remaining();
+        DataRecord record = new DataRecord(cat, 0, length, null, timestamp);
         
-        // Simplified - parse FSPEC first
         int fspecLength = parseFSPEC(buffer);
         
-        // Then parse items based on category
-        // This is a placeholder for the complex parsing logic
+        // Parse items defined in the category
+        List<DataItemDescription> items = cat.getDataItems();
         
+        if (items.isEmpty()) {
+            System.out.println("No items defined for this category.");
+            // Return empty block or add dummy
+            blocks.add(block);
+            return;
+        }
+        
+        int dataOffset = 1 + fspecLength; // Start after cat byte and FSPEC
+        
+        // Simple loop - should check FSPEC bits to know what is present
+        for (DataItemDescription itemDesc : items) {
+            if (itemDesc.getRule() == DataItemDescription.Rule.DATAITEM_MANDATORY || 
+                (dataOffset < buffer.capacity())) {
+                
+                DataItem item = new DataItem(itemDesc);
+                
+                // Set raw data for this item
+                ByteBuffer itemData = buffer.duplicate();
+                itemData.position(dataOffset);
+                // Limit data length (simplified)
+                item.setData(itemData);
+                item.setLength(0); // unknown length for now
+                
+                record.addDataItem(item);
+                
+                // Advance offset (placeholder)
+                dataOffset += 2; 
+            }
+        }
+        
+        block.addRecord(record);
         blocks.add(block);
     }
 
