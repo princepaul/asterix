@@ -66,8 +66,13 @@ public class XMLDefinitionLoader {
         try {
             catId = Integer.parseInt(idStr);
         } catch (NumberFormatException e) {
-            System.out.println("Skipping non-numeric category: " + idStr);
-            return; // Skip BDS or other non-numeric
+            // Handle BDS as special category ID 256
+            if ("BDS".equals(idStr)) {
+                catId = 256;
+            } else {
+                System.out.println("Skipping non-numeric category: " + idStr);
+                return; // Skip other non-numeric
+            }
         }
         
         String catName = catElement.getAttribute("name");
