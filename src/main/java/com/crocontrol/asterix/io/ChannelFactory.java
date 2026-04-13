@@ -1,5 +1,7 @@
 package com.crocontrol.asterix.io;
 
+import java.io.IOException;
+
 public class ChannelFactory {
     public static final int MAX_OUTPUT_CHANNELS = 10;
 
@@ -62,11 +64,19 @@ public class ChannelFactory {
 
     public void close() {
         if (inputChannel != null) {
-            inputChannel.close();
+            try {
+                inputChannel.close();
+            } catch (IOException e) {
+                // Ignore
+            }
         }
         for (int i = 0; i < nOutputChannels; i++) {
             if (outputChannels[i] != null) {
-                outputChannels[i].close();
+                try {
+                    outputChannels[i].close();
+                } catch (IOException e) {
+                    // Ignore
+                }
             }
         }
     }

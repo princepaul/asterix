@@ -281,4 +281,9 @@ public class DataItemBits extends DataItemFormat {
     public String getDescription(String field, String value) {
         return null;
     }
+
+    @Override
+    public boolean isFiltered(String name) {
+        return filtered;
+    }
 }
